@@ -2,13 +2,13 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 const Stack = createNativeStackNavigator();
 
-import HomeScreen from '../screen/HomeScreen';
-import CariKelasScreen from '../screen/CariKelasScreen';
-import KelasScreen from '../screen/KelasScreen';
-import PreTestScreen from '../screen/PreTestScreen';
-import UjianScreen from '../screen/UjianScreen';
-import MateriScreen from '../screen/MateriScreen';
-import DetailMateriScreen from '../screen/DetailMateriScreen';
+import HomeScreen from '../screen/peserta/HomeScreen';
+import CariKelasScreen from '../screen/peserta/CariKelasScreen';
+import KelasScreen from '../screen/peserta/KelasScreen';
+import PreTestScreen from '../screen/peserta/PreTestScreen';
+import UjianScreen from '../screen/peserta/UjianScreen';
+import MateriScreen from '../screen/peserta/MateriScreen';
+import DetailMateriScreen from '../screen/peserta/DetailMateriScreen';
 
 export default function PesertaNav() {
 	return (
