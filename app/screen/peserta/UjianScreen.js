@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Dimensions, View, ScrollView } from 'react-native';
 import { Appbar, Button, List, RadioButton } from 'react-native-paper';
+import { supabase } from '../../config/supabase';
 
 export default function UjianScreen({ navigation, theme }) {
 	const [soal, setSoal] = useState(1);
@@ -12,6 +13,13 @@ export default function UjianScreen({ navigation, theme }) {
 	const scrollButton = (newPos) => {
 		setSoal(newPos)
 		scrollViewRef.current?.scrollTo({ x: ((newPos - 1) * ButtonWidth), y: 0, animated: true });
+	}
+
+
+	const generateSoal = async () => {
+		const { error } = await supabase
+			.from('soal')
+			.insert({ soal_paket_id: '3a91352f-ea80-4caa-85d6-babec52186b1', peserta_id: pesertaID, tanggal_mulai: new Date() });
 	}
 
 	return (

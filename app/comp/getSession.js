@@ -1,12 +1,16 @@
 import { supabase } from "../config/supabase";
 
-const getSession = async() => {
+const getSession = async () => {
 	const { data, error } = await supabase.auth.getSession()
-	const user_id = data.session.user.id;
-	
-	//selecr peserta eq auth uid
-	
-	let result = user_id;
+	const userId = data.session.user.id;
+
+	const { data: userData, error: userError } = await supabase
+		.from('peserta')
+		.select('id,nama,telpon')
+		.eq('auth_uid', userId)
+		.single();
+
+	let result = userData;
 	return result;
 }
 

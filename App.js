@@ -23,12 +23,12 @@ const theme = {
 
 export default function App() {
 	const [appSession, setAppSession] = useState(null)
-	
+
 	useEffect(() => {
 		supabase.auth.getSession().then(({ data: { session } }) => {
 			setAppSession(session)
 		})
-	
+
 		supabase.auth.onAuthStateChange((_event, session) => {
 			setAppSession(session)
 		})
@@ -37,7 +37,7 @@ export default function App() {
 	return (
 		<PaperProvider theme={theme}>
 			<AlertNotificationRoot>
-			{appSession && appSession.user ? <PesertaNav /> : <AuthNav />}
+				{appSession && appSession.user ? <PesertaNav /> : <AuthNav />}
 			</AlertNotificationRoot>
 		</PaperProvider>
 	);

@@ -2,11 +2,21 @@ import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { Appbar, Button, Card, TextInput } from 'react-native-paper';
 import { supabase } from '../../config/supabase';
+import getSession from '../../comp/getSession';
 
 export default function CariKelasScreen({ navigation }) {
 	const [visible, setVisible] = useState(false);
 	const [kode, setKode] = useState('');
 	const [kelas, setKelas] = useState([]);
+	const [pesertaID, setPesertaID] = useState(null);
+
+	useEffect(() => {
+		getData();
+	}, [])
+
+	const getData = async () => {
+		await getSession().then(async val => setPesertaID(val.id));
+	}
 
 	const cariKelas = async () => {
 		const { data, error } = await supabase
@@ -26,7 +36,7 @@ export default function CariKelasScreen({ navigation }) {
 	const joinKelas = async () => {
 		const { error } = await supabase
 			.from('kelas_peserta')
-			.insert({ kelas_id: kelas.id, peserta_id: '9def004d-8cd1-40b9-a069-53b77e2656d3', tanggal_mulai: new Date() })
+			.insert({ kelas_id: kelas.id, peserta_id: pesertaID, tanggal_mulai: new Date() })
 
 		if (!error) {
 			await navigation.navigate('HomeScreen');
@@ -40,16 +50,14 @@ export default function CariKelasScreen({ navigation }) {
 				<Appbar.Content title="Gabung Kelas" />
 			</Appbar.Header>
 
-			<ScrollView>
-				<View style={{ flexDirection: 'row', margin: 20 }}>
-					<TextInput
-						label="Kode Kelas"
-						mode="outlined"
-						value={kode}
-						onChangeText={val => setKode(val)}
-					/>
-					<Button mode="contained" onPress={() => cariKelas()} style={{ margin: 10 }}>Cari</Button>
-				</View>
+			<ScrollView style={{ marginHorizontal: 20 }}>
+				<TextInput
+					label="Kode Kelas"
+					mode="outlined"
+					value={kode}
+					onChangeText={val => setKode(val)}
+				/>
+				<Button mode="contained" onPress={() => cariKelas()} style={{ marginVertical: 10 }}>Cari</Button>
 			</ScrollView>
 
 			{visible && (

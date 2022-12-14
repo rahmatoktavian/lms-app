@@ -3,7 +3,7 @@ import { Appbar, withTheme } from 'react-native-paper';
 import Timeline from 'react-native-timeline-flatlist'
 
 function KelasScreen({ navigation, route, theme }) {
-	const { id } = route.params;
+	const { id, soalPaketId } = route.params;
 	const [data, setData] = useState();
 
 	useEffect(() => {
@@ -25,7 +25,7 @@ function KelasScreen({ navigation, route, theme }) {
 			<Timeline
 				data={data}
 				showTime={false}
-				onEventPress={(event) => navigation.navigate(event.screen, { id: id })}
+				onEventPress={(event) => navigation.navigate(event.screen, { id: id, soalPaketId: soalPaketId })}
 				innerCircle='dot'
 				lineColor={'rgb(45,156,219)'}
 				separator={true}
