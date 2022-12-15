@@ -7,31 +7,45 @@ import { Dialog, ALERT_TYPE } from 'react-native-alert-notification';
 import { supabase } from '../../config/supabase';
 import Loader from '../../comp/Loader';
 
-function HomeScreen({ navigation, theme }) {
+function RegisterScreen({ navigation, theme }) {
 	const [loading, setLoading] = useState(false);
 	const [hidePassword, setHidePassword] = useState(true);
 
-	const onLogin = async (values) => {
+	const onRegister = async (values) => {
 		setLoading(true)
-		const { error } = await supabase.auth.signInWithPassword({
+
+		const { data: authData, error: authError } = await supabase.auth.signUp({
 			email: values.email,
 			password: values.password,
 		})
 
-		if (error) {
+		const { error: registerErr } = await supabase
+			.from('peserta')
+			.insert({ auth_uid: authData.user.id, nama: values.fullname, telpon: values.phone, tanggal_gabung: new Date() })
+
+		if (!registerErr) {
+			Dialog.show({
+				type: ALERT_TYPE.SUCCESS,
+				title: 'Berhasil Mendaftarkan Akun, Silahkan login',
+				button: 'Ok',
+			})
+			await navigation.navigate('LoginScreen');
+		} else {
 			Dialog.show({
 				type: ALERT_TYPE.WARNING,
 				title: error.message,
-				button: 'Close',
+				button: 'Ok',
 			})
 		}
+
+
 		setLoading(false)
 	}
 
 	return (
 		<>
 			<Appbar.Header>
-				<Appbar.Content title="LMS Login" />
+				<Appbar.Content title="LMS Register" />
 			</Appbar.Header>
 
 			<Loader loading={loading} />
@@ -43,6 +57,13 @@ function HomeScreen({ navigation, theme }) {
 				}}
 				enableReinitialize
 				validationSchema={yup.object().shape({
+					fullname: yup
+						.string()
+						.required(),
+					phone: yup
+						.number()
+						.required()
+						.positive(),
 					email: yup
 						.string()
 						.email()
@@ -52,10 +73,28 @@ function HomeScreen({ navigation, theme }) {
 						.min(6)
 						.required(),
 				})}
-				onSubmit={values => onLogin(values)}
+				onSubmit={values => onRegister(values)}
 			>
 				{({ handleSubmit, handleBlur, handleChange, values, errors, touched, isValid }) => (
 					<>
+						<TextInput
+							label="Nama Lengkap"
+							value={values.fullname}
+							onChangeText={handleChange('fullname')}
+							onBlur={handleBlur('fullname')}
+							error={errors.fullname ? true : false}
+							style={{ margin: 10 }}
+						/>
+						{errors.fullname && <HelperText type="error">{errors.fullname}</HelperText>}
+						<TextInput
+							label="Nomor Telepon"
+							value={values.phone}
+							onChangeText={handleChange('phone')}
+							onBlur={handleBlur('phone')}
+							error={errors.phone ? true : false}
+							style={{ margin: 10 }}
+						/>
+						{errors.phone && <HelperText type="error">{errors.phone}</HelperText>}
 						<TextInput
 							label="Email"
 							value={values.email}
@@ -76,8 +115,7 @@ function HomeScreen({ navigation, theme }) {
 							style={{ margin: 10 }}
 						/>
 						{errors.password && <HelperText type="error">{errors.password}</HelperText>}
-						<Button mode="contained" disabled={!isValid} onPress={handleSubmit} style={{ margin: 10 }}>Login</Button>
-						<Button mode="outlined" onPress={() => navigation.navigate('RegisterScreen')} style={{ marginHorizontal: 10 }}>Register</Button>
+						<Button mode="contained" disabled={!isValid} onPress={handleSubmit} style={{ margin: 10 }}>Register</Button>
 					</>
 				)}
 			</Formik>
@@ -85,4 +123,4 @@ function HomeScreen({ navigation, theme }) {
 	);
 }
 
-export default withTheme(HomeScreen)
+export default withTheme(RegisterScreen)

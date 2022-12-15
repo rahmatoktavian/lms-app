@@ -3,8 +3,10 @@ import { ScrollView, Text, View } from 'react-native';
 import { Appbar, Button, Card, TextInput } from 'react-native-paper';
 import { supabase } from '../../config/supabase';
 import getSession from '../../comp/getSession';
+import Loader from '../../comp/Loader';
 
 export default function CariKelasScreen({ navigation }) {
+	const [loading, setLoading] = useState(false);
 	const [visible, setVisible] = useState(false);
 	const [kode, setKode] = useState('');
 	const [kelas, setKelas] = useState([]);
@@ -15,10 +17,13 @@ export default function CariKelasScreen({ navigation }) {
 	}, [])
 
 	const getData = async () => {
+		setLoading(true)
 		await getSession().then(async val => setPesertaID(val.id));
+		setLoading(false)
 	}
 
 	const cariKelas = async () => {
+		setLoading(true)
 		const { data, error } = await supabase
 			.from('kelas')
 			.select('id, label, deskripsi)')
@@ -31,9 +36,11 @@ export default function CariKelasScreen({ navigation }) {
 			await setKelas({ 'label': 'Kelas Tidak Ditemukan', 'deskripsi': '' });
 		}
 		await setVisible(true);
+		setLoading(false)
 	}
 
 	const joinKelas = async () => {
+		setLoading(true)
 		const { error } = await supabase
 			.from('kelas_peserta')
 			.insert({ kelas_id: kelas.id, peserta_id: pesertaID, tanggal_mulai: new Date() })
@@ -41,6 +48,7 @@ export default function CariKelasScreen({ navigation }) {
 		if (!error) {
 			await navigation.navigate('HomeScreen');
 		}
+		setLoading(false)
 	}
 
 	return (
@@ -49,6 +57,8 @@ export default function CariKelasScreen({ navigation }) {
 				<Appbar.BackAction onPress={() => navigation.goBack()} />
 				<Appbar.Content title="Gabung Kelas" />
 			</Appbar.Header>
+
+			<Loader loading={loading} />
 
 			<ScrollView style={{ marginHorizontal: 20 }}>
 				<TextInput

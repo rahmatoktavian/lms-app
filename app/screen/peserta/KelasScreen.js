@@ -1,17 +1,21 @@
 import { useEffect, useState } from 'react';
 import { Appbar, withTheme } from 'react-native-paper';
 import Timeline from 'react-native-timeline-flatlist'
+import Loader from '../../comp/Loader';
 
 function KelasScreen({ navigation, route, theme }) {
-	const { id, soalPaketId } = route.params;
+	const [loading, setLoading] = useState(false);
+	const { id, soalPaketId, kelasPesertaId } = route.params;
 	const [data, setData] = useState();
 
 	useEffect(() => {
+		setLoading(true)
 		setData([
 			{ title: 'Pre Test', lineColor: theme.colors.primary, dotColor: theme.colors.primary, circleColor: theme.colors.primary, screen: 'PreTestScreen' },
 			{ title: 'Materi Belajar', lineColor: 'gray', dotColor: 'gray', circleColor: 'gray', screen: 'MateriScreen' },
 			{ title: 'Post Test', lineColor: 'gray', dotColor: 'gray', circleColor: 'gray', screen: 'HomeScreen' },
 		]);
+		setLoading(false)
 	}, [])
 
 
@@ -22,10 +26,12 @@ function KelasScreen({ navigation, route, theme }) {
 				<Appbar.Content title="Akademi Bank Sampah" />
 			</Appbar.Header>
 
+			<Loader loading={loading} />
+
 			<Timeline
 				data={data}
 				showTime={false}
-				onEventPress={(event) => navigation.navigate(event.screen, { id: id, soalPaketId: soalPaketId })}
+				onEventPress={(event) => navigation.navigate(event.screen, { id: id, soalPaketId: soalPaketId, kelasPesertaId: kelasPesertaId })}
 				innerCircle='dot'
 				lineColor={'rgb(45,156,219)'}
 				separator={true}
