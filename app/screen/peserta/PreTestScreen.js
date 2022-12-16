@@ -3,9 +3,11 @@ import { ScrollView } from 'react-native';
 import { Appbar, Card, Text, Button, withTheme } from 'react-native-paper';
 import { supabase } from '../../config/supabase';
 import getSession from '../../comp/getSession';
+import Loader from '../../comp/Loader';
 import uuid from 'react-native-uuid';
 
 function PreTestScreen({ navigation, route, theme }) {
+	const [loading, setLoading] = useState(false);
 	const { id, soalPaketId, kelasPesertaId } = route.params;
 	const [preTest, setPreTest] = useState(null)
 	const [pesertaId, setPesertaId] = useState(null)
@@ -13,78 +15,95 @@ function PreTestScreen({ navigation, route, theme }) {
 	useEffect(() => {
 		getPesertaId();
 		CreateSoal();
-		getSoal();
 	}, [])
 
 	const getPesertaId = async () => {
-		await getSession().then(async id => setPesertaId(id));
+		setLoading(true)
+		await getSession().then(async val => setPesertaId(val.id));
+		setLoading(false)
 	}
 
 
 	const CreateSoal = async () => {
+		setLoading(true)
 		const { data, error } = await supabase
 			.from('kelas_peserta_ujian')
 			.select('id,label, kelas:kelas_id ( label)')
 			.eq({ 'kelas_id': id, 'peserta_id': pesertaId, 'tipe': 'pre' })
 			.single();
 		setPreTest(data);
+		setLoading(false)
 	}
 
 
 	const OnMulai = async () => {
-		// const getUid = uuid.v4();
-		// const kelas_peserta_ujian_id = getUid;
+		setLoading(true)
+		const kelas_peserta_ujian_id = uuid.v4();
+		let dateNow = new Date().toLocaleTimeString();
 
-		// const { error } = await supabase
-		// 	.from('kelas_peserta_ujian')
-		// 	.insert({ id: kelas_peserta_ujian_id, kelas_peserta_id: kelasPesertaId, kelas_id: id, peserta_id: pesertaId, tipe: 'tipe', waktu_mulai: new Date(), status_ujian: false });
+		const { error } = await supabase
+			.from('kelas_peserta_ujian')
+			.insert({ id: kelas_peserta_ujian_id, kelas_peserta_id: kelasPesertaId, kelas_id: id, peserta_id: pesertaId, tipe: 'pre', waktu_mulai: dateNow, status_ujian: false });
 
-		// if (error) {
-		// 	console.log('masalah nih:', error);
-		// } else {
-		// 	await navigation.navigate('HomeScreen');
-		// }
+		let soalList = [];
 
-		// let soalList = [];
+		const { data: soal } = await supabase.rpc('get_soal', { soal_paket_id_filter: soalPaketId, limit_filter: 3 });
 
-		// const { data: soal } = await supabase.rpc('get_soal', { soal_paket_id_filter: soalPaketId, 3 });
+		await Promise.all(
+			soal.map(async (row, idx) => {
+				soalList = [idx, row.label];
 
-		// await Promise.all(
-		// 	soal.map(async (row, idx) => {
-		// 		soalList = [{ idx, row.label }];
+				// let jawaban = [];
+				// let jawaban_benar = [];
+				const { data: getJawaban, error: JawabanErr } = await supabase.rpc('get_soal_jawaban', { soal_id_filter: row.id, limit_filter: 3 });
 
-		// 		let jawaban = [];
-		// 		let jawaban_benar = [];
-		// 		const { data: jawaban } = await supabase.rpc('get_soal_jawaban', { soal_id_filter: row.id, 3 });
-		// 		const { data: jawaban_benar } = await supabase
-		// 			.from('soal_jawaban')
-		// 			.select('label')
-		// 			.eq(soal_id, row.id)
-		// 			.is(is_right, true)
-		// 			.single();
+				// if (getJawaban) {
+				// 	console.log('get 1 :', getJawaban);
+				// }
+
+				const { data: getJawaban_benar, error: JawabanBenarErr } = await supabase
+					.from('soal_jawaban')
+					.select('label')
+					.eq(soal_id, row.id)
+					.is(is_right, true)
+					.single();
+
+				// if (getJawaban_benar) {
+				// 	console.log('get 2 :', getJawaban_benar);
+				// }
+
+				soalList[idx] = {
+					'idx': idx, 'label': row.label, 'jawaban': { ...getJawaban }, 'jawaban_benar': getJawaban_benar
+				};
+
+			}),
 
 
-		// 		soalList[idx] = {
-		// 			idx: idx, label: row.label, 'jawaban': { ...jawaban }, 'jawaban_benar': jawaban_benar
-		// 		};
-		// 	})
+			soalList.map(async (row) => {
+				console.log('get 2 :', { kelas_peserta_ujian_id: kelas_peserta_ujian_id, kelas_id: id, peserta_id: pesertaId, soal: row.label, jawaban: row.jawaban, jawaban_benar: row.jawaban_benar })
 
-		// soalList.map(async (row) => {
-		// 		const { error } = await supabase
-		// 			.from('kelas_peserta_ujian_jawaban')
-		// 			.insert({ kelas_peserta_ujian_id: kelas_peserta_ujian_id, kelas_id: id, peserta_id: pesertaId, soal: row.label, jawaban: row.jawaban, jawaban_benar: row.jawaban_benar });
-		// 	})
+				const { error: err } = await supabase
+					.from('kelas_peserta_ujian_jawaban')
+					.insert({ kelas_peserta_ujian_id: kelas_peserta_ujian_id, kelas_id: id, peserta_id: pesertaId, soal: row.label, jawaban: row.jawaban, jawaban_benar: row.jawaban_benar });
 
-		// navigate('UjianScreen', { id: id, soalPaketId: soalPaketId, kelasPesertaId: kelasPesertaId, kelasPesertaUjianId: kelas_peserta_ujian_id });
-		// )
+				if (err) {
+					console.log('getErrx :', err);
+				}
+			})
+
+		)
+		setLoading(false)
+		// navigation.navigate('UjianScreen', { id: id, soalPaketId: soalPaketId, kelasPesertaId: kelasPesertaId, kelasPesertaUjianId: kelas_peserta_ujian_id });
 	}
 
 	return (
 		<>
 			<Appbar.Header>
 				<Appbar.BackAction onPress={() => navigation.goBack()} />
-				<Appbar.Content title={preTest.kelas.label} />
+				<Appbar.Content title="Pre Test" />
 			</Appbar.Header>
+
+			<Loader loading={loading} />
 
 			{preTest && (
 				<ScrollView>

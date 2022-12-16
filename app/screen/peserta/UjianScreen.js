@@ -1,10 +1,15 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Dimensions, View, ScrollView } from 'react-native';
 import { Appbar, Button, List, RadioButton } from 'react-native-paper';
 import { supabase } from '../../config/supabase';
+import getSession from '../../comp/getSession';
+import Loader from '../../comp/Loader';
 
-export default function UjianScreen({ navigation, theme }) {
+export default function UjianScreen({ navigation, route, theme }) {
+	const [loading, setLoading] = useState(false);
+	const { kelasPesertaUjianId } = route.params;
 	const [soal, setSoal] = useState(1);
+	const [pesertaId, setPesertaId] = useState(null)
 	const [jawaban, setJawaban] = useState('');
 	const screenWidth = Dimensions.get('window').width;
 	const ButtonWidth = Math.floor(screenWidth / 5);
@@ -14,6 +19,18 @@ export default function UjianScreen({ navigation, theme }) {
 		setSoal(newPos)
 		scrollViewRef.current?.scrollTo({ x: ((newPos - 1) * ButtonWidth), y: 0, animated: true });
 	}
+
+	useEffect(() => {
+		getPesertaId();
+	}, [])
+
+
+	const getPesertaId = async () => {
+		setLoading(true)
+		await getSession().then(async val => setPesertaId(val.id));
+		setLoading(false)
+	}
+
 
 
 	const generateSoal = async () => {
@@ -28,6 +45,8 @@ export default function UjianScreen({ navigation, theme }) {
 				<Appbar.BackAction onPress={() => navigation.goBack()} />
 				<Appbar.Content title="Kelas" />
 			</Appbar.Header>
+
+			<Loader loading={loading} />
 
 			<ScrollView>
 				<View>
