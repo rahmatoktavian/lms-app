@@ -13,25 +13,25 @@ function PreTestScreen({ navigation, route, theme }) {
 	const [pesertaId, setPesertaId] = useState(null)
 
 	useEffect(() => {
-		getPesertaId();
-		CreateSoal();
+		CekUjian();
 	}, [])
 
-	const getPesertaId = async () => {
-		setLoading(true)
-		await getSession().then(async val => setPesertaId(val.id));
-		setLoading(false)
-	}
 
-
-	const CreateSoal = async () => {
+	const CekUjian = async () => {
 		setLoading(true)
-		const { data, error } = await supabase
-			.from('kelas_peserta_ujian')
-			.select('id,label, kelas:kelas_id ( label)')
-			.eq({ 'kelas_id': id, 'peserta_id': pesertaId, 'tipe': 'pre' })
-			.single();
-		setPreTest(data);
+
+		await getSession().then(async val => {
+			setPesertaId(val.id);
+			const { data, error } = await supabase
+				.from('kelas_peserta_ujian')
+				.select('id, kelas:kelas_id (label)')
+				.eq('kelas_id', id)
+				.eq('peserta_id', val.id)
+				.eq('tipe', 'pre')
+				.limit(1)
+				.single();
+			setPreTest(data);
+		});
 		setLoading(false)
 	}
 
@@ -46,55 +46,43 @@ function PreTestScreen({ navigation, route, theme }) {
 			.insert({ id: kelas_peserta_ujian_id, kelas_peserta_id: kelasPesertaId, kelas_id: id, peserta_id: pesertaId, tipe: 'pre', waktu_mulai: dateNow, status_ujian: false });
 
 		let soalList = [];
-
 		const { data: soal } = await supabase.rpc('get_soal', { soal_paket_id_filter: soalPaketId, limit_filter: 3 });
 
-		await Promise.all(
-			soal.map(async (row, idx) => {
-				soalList = [idx, row.label];
 
-				// let jawaban = [];
-				// let jawaban_benar = [];
-				const { data: getJawaban, error: JawabanErr } = await supabase.rpc('get_soal_jawaban', { soal_id_filter: row.id, limit_filter: 3 });
+		soal.map(async (row, idx) => {
+			const kelas_peserta_ujian_jawaban_id = uuid.v4();
 
-				// if (getJawaban) {
-				// 	console.log('get 1 :', getJawaban);
-				// }
+			const { error: err } = await supabase
+				.from('kelas_peserta_ujian_jawaban')
+				.insert({ id: kelas_peserta_ujian_jawaban_id, soal: row.label, kelas_peserta_ujian_id: kelas_peserta_ujian_id, kelas_id: id, peserta_id: pesertaId, jawaban_list: '-', jawaban_benar: '-' });
 
-				const { data: getJawaban_benar, error: JawabanBenarErr } = await supabase
-					.from('soal_jawaban')
-					.select('label')
-					.eq(soal_id, row.id)
-					.is(is_right, true)
-					.single();
+			if (err) {
+				console.log('getErrx :', err);
+			}
 
-				// if (getJawaban_benar) {
-				// 	console.log('get 2 :', getJawaban_benar);
-				// }
+			let jawaban_list = [];
+			// let jawaban_benar = [];
+			const { data: getJawaban, error: JawabanErr } = await supabase.rpc('get_soal_jawaban', { soal_id_filter: row.id, limit_filter: 3 });
 
-				soalList[idx] = {
-					'idx': idx, 'label': row.label, 'jawaban': { ...getJawaban }, 'jawaban_benar': getJawaban_benar
-				};
+			if (JawabanErr) {
+				console.log('error jawaban :', JawabanErr);
+			} else {
+				getJawaban.map((val, idx) => {
+					jawaban_list[idx] = val;
+				})
 
-			}),
-
-
-			soalList.map(async (row) => {
-				console.log('get 2 :', { kelas_peserta_ujian_id: kelas_peserta_ujian_id, kelas_id: id, peserta_id: pesertaId, soal: row.label, jawaban: row.jawaban, jawaban_benar: row.jawaban_benar })
-
-				const { error: err } = await supabase
+				// await Promise.all(
+				await supabase
 					.from('kelas_peserta_ujian_jawaban')
-					.insert({ kelas_peserta_ujian_id: kelas_peserta_ujian_id, kelas_id: id, peserta_id: pesertaId, soal: row.label, jawaban: row.jawaban, jawaban_benar: row.jawaban_benar });
-
-				if (err) {
-					console.log('getErrx :', err);
-				}
-			})
-
-		)
+					.update({ jawaban_list: jawaban_list })
+					.eq('id', kelas_peserta_ujian_jawaban_id)
+				// );
+			}
+		})
 		setLoading(false)
-		// navigation.navigate('UjianScreen', { id: id, soalPaketId: soalPaketId, kelasPesertaId: kelasPesertaId, kelasPesertaUjianId: kelas_peserta_ujian_id });
+		navigation.navigate('UjianScreen', { kelasaUjianPesertaId: kelas_peserta_ujian_id });
 	}
+
 
 	return (
 		<>
@@ -107,7 +95,7 @@ function PreTestScreen({ navigation, route, theme }) {
 
 			{preTest && (
 				<ScrollView>
-					<Card style={{ margin: 10 }}>
+					<Card onPress={() => navigation.navigate('UjianScreen', { kelasUjianPesertaId: preTest.id })} style={{ margin: 10 }}>
 						<Card.Content>
 							<Text variant="titleMedium">Kerjakan Soal</Text>
 							<Text>Soal terdiri 50 Pilihan Ganda, kerjakan seluruh soal dengan teliti.</Text>
