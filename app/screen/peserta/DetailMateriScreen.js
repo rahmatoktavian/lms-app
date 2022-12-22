@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react';
 import { ScrollView } from 'react-native';
 import { Appbar, Card, List, Text } from 'react-native-paper';
 import { supabase } from '../../config/supabase';
+import Loader from '../../comp/Loader';
 
 export default function DetailMateriScreen({ navigation, route }) {
+	const [loading, setLoading] = useState(false);
 	const { id } = route.params;
 	const [detailMateri, setDetailMateri] = useState([]);
 
@@ -11,14 +14,17 @@ export default function DetailMateriScreen({ navigation, route }) {
 	}, [])
 
 	const getData = async () => {
+		setLoading(true)
 		const { data, error } = await supabase
 			.from('kelas_materi_file')
 			.select('id,label,tipe,materi_url')
+			.order('urutan', { ascending: true })
 			.eq('kelas_materi_id', id);
 
 		if (!error) {
 			setDetailMateri(data);
 		}
+		setLoading(false)
 	}
 
 
@@ -26,28 +32,24 @@ export default function DetailMateriScreen({ navigation, route }) {
 		<>
 			<Appbar.Header>
 				<Appbar.BackAction onPress={() => navigation.goBack()} />
-				<Appbar.Content title="Materi : Pengenalan" />
+				<Appbar.Content title="Materi Belajar" />
 			</Appbar.Header>
 
-			<ScrollView>
-				<Card style={{ margin: 10 }}>
-					<Card.Content>
-						<Text variant="titleMedium">Video Pengenalan</Text>
-					</Card.Content>
-				</Card>
+			<Loader loading={loading} />
 
-				{materi &&
+			<ScrollView>
+				{detailMateri &&
 					detailMateri.map((val, idx) => (
 						<List.Item
 							key={idx}
 							title={val.label}
+							left={props => <List.Icon {...props} icon={val.tipe === 'file' ? 'file-document' : val.tipe === 'video' ? 'play-circle' : val.tipe === 'link' && 'link'} />}
 							right={props => <List.Icon {...props} icon="arrow-right" />}
 							style={{ marginVertical: 10 }}
-							onPress={() => navigation.navigate('DetailMateriScreen', { id: val.id })}
+							onPress={() => navigation.navigate('DetailMateriWebViewScreen', { label: val.label, url: val.materi_url, tipe: val.tipe })}
 						/>
 					))
 				}
-
 			</ScrollView>
 		</>
 	);

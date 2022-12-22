@@ -5,7 +5,7 @@ import Loader from '../../comp/Loader';
 
 function KelasScreen({ navigation, route, theme }) {
 	const [loading, setLoading] = useState(false);
-	const { id, soalPaketId, kelasPesertaId } = route.params;
+	const { id, pesertaId, soalPaketId, kelasPesertaId, kelasLabel } = route.params;
 	const [data, setData] = useState();
 
 	useEffect(() => {
@@ -23,7 +23,7 @@ function KelasScreen({ navigation, route, theme }) {
 		<>
 			<Appbar.Header>
 				<Appbar.BackAction onPress={() => navigation.goBack()} />
-				<Appbar.Content title="Akademi Bank Sampah" />
+				<Appbar.Content title={kelasLabel} />
 			</Appbar.Header>
 
 			<Loader loading={loading} />
@@ -31,7 +31,7 @@ function KelasScreen({ navigation, route, theme }) {
 			<Timeline
 				data={data}
 				showTime={false}
-				onEventPress={(event) => navigation.navigate(event.screen, { id: id, soalPaketId: soalPaketId, kelasPesertaId: kelasPesertaId })}
+				onEventPress={(event) => navigation.navigate(event.screen, { id: id, pesertaId: pesertaId, soalPaketId: soalPaketId, kelasPesertaId: kelasPesertaId, kelasLabel: kelasLabel })}
 				innerCircle='dot'
 				lineColor={'rgb(45,156,219)'}
 				separator={true}

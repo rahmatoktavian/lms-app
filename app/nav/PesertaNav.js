@@ -9,6 +9,7 @@ import PreTestScreen from '../screen/peserta/PreTestScreen';
 import UjianScreen from '../screen/peserta/UjianScreen';
 import MateriScreen from '../screen/peserta/MateriScreen';
 import DetailMateriScreen from '../screen/peserta/DetailMateriScreen';
+import DetailMateriWebViewScreen from '../screen/peserta/DetailMateriWebViewScreen';
 
 export default function PesertaNav() {
 	return (
@@ -21,6 +22,7 @@ export default function PesertaNav() {
 				<Stack.Screen name="UjianScreen" component={UjianScreen} />
 				<Stack.Screen name="MateriScreen" component={MateriScreen} />
 				<Stack.Screen name="DetailMateriScreen" component={DetailMateriScreen} />
+				<Stack.Screen name="DetailMateriWebViewScreen" component={DetailMateriWebViewScreen} />
 			</Stack.Navigator>
 		</NavigationContainer>
 	);

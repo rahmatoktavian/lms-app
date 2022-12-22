@@ -9,10 +9,19 @@ export default function HomeScreen({ navigation }) {
 	const [loading, setLoading] = useState(false);
 	const [kelas, setKelas] = useState([]);
 	const [peserta, setPeserta] = useState([]);
+	const [pesertaId, setPesertaId] = useState(null);
 
 	useEffect(() => {
+		getPeserta();
 		getData();
 	}, [])
+
+	const getPeserta = async () => {
+		setLoading(true)
+		await getSession().then(async val => setPesertaId(val.id));
+		setLoading(false)
+	}
+
 
 	const getData = async () => {
 		setLoading(true)
@@ -50,7 +59,7 @@ export default function HomeScreen({ navigation }) {
 
 				{kelas && (
 					kelas.map((val, idx) => (
-						<Card style={{ margin: 10 }} key={idx} onPress={() => navigation.navigate('KelasScreen', { id: val.kelas.id, soalPaketId: val.kelas.soal_paket_id, kelasPesertaId: val.id })}>
+						<Card style={{ margin: 10 }} key={idx} onPress={() => navigation.navigate('KelasScreen', { id: val.kelas.id, pesertaId: pesertaId, kelasLabel: val.kelas.label, soalPaketId: val.kelas.soal_paket_id, kelasPesertaId: val.id })}>
 							<Card.Content>
 								<Text variant="titleMedium">{val.kelas.label}</Text>
 
