@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { ScrollView } from 'react-native';
-import { Appbar, List } from 'react-native-paper';
+import { Appbar, Checkbox, List } from 'react-native-paper';
 import { supabase } from '../../config/supabase';
 
 export default function MateriScreen({ navigation, route }) {
-	const { id, pesertaId, kelasLabel } = route.params;
+	const { id, pesertaId, kelasLabel, kelasPesertaId } = route.params;
 	const [materi, setMateri] = useState([]);
 	const [treeData, setTreeData] = useState([]);
 
@@ -26,12 +26,12 @@ export default function MateriScreen({ navigation, route }) {
 
 				const { data: menuchild } = await supabase
 					.rpc('kelas_materi_file_rpc', { peserta_id: pesertaId })
-
+				console.log('childrenx', menuchild);
 				if (menuchild != null) {
 					let children = [];
 					menuchild.map(rowchild => {
 
-						children.push({ id: rowchild.id, tipe: rowchild.tipe, title: rowchild.label, selected: (rowchild.log_time === null) ? false : true })
+						children.push({ id: rowchild.id, tipe: rowchild.tipe, url: rowchild.url, title: rowchild.label, selected: (rowchild.log_time === null) ? false : true })
 					})
 					treeList[idx]['children'] = children
 				}
@@ -61,7 +61,10 @@ export default function MateriScreen({ navigation, route }) {
 								left={props => <List.Icon {...props} icon="folder" />}>
 								{val.children.map((valChild, idx) => (
 									<List.Item title={valChild.title}
+										key={idx}
 										left={props => <List.Icon {...props} icon={valChild.tipe === 'file' ? 'file-document' : valChild.tipe === 'video' ? 'play-circle' : valChild.tipe === 'link' && 'link'} />}
+										right={props => <Checkbox status={valChild.selected ? 'checked' : 'unchecked'} />}
+										onPress={() => navigation.navigate('DetailMateriWebViewScreen', { kelasId: id, materiFileId: valChild.id, label: valChild.label, url: valChild.url, tipe: valChild.tipe, pesertaId: pesertaId, kelasPesertaId: kelasPesertaId })}
 									/>
 								))}
 							</List.Accordion>

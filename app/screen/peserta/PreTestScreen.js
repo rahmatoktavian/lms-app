@@ -5,6 +5,7 @@ import { supabase } from '../../config/supabase';
 import getSession from '../../comp/getSession';
 import Loader from '../../comp/Loader';
 import uuid from 'react-native-uuid';
+import { Dialog, ALERT_TYPE } from 'react-native-alert-notification';
 
 function PreTestScreen({ navigation, route, theme }) {
 	const [loading, setLoading] = useState(false);
@@ -32,6 +33,7 @@ function PreTestScreen({ navigation, route, theme }) {
 				.single();
 			setPreTest(data);
 		});
+
 		setLoading(false)
 	}
 
@@ -61,26 +63,39 @@ function PreTestScreen({ navigation, route, theme }) {
 			}
 
 			let jawaban_list = [];
-			// let jawaban_benar = [];
+			let jawaban_benar = [];
 			const { data: getJawaban, error: JawabanErr } = await supabase.rpc('get_soal_jawaban', { soal_id_filter: row.id, limit_filter: 3 });
 
 			if (JawabanErr) {
 				console.log('error jawaban :', JawabanErr);
 			} else {
-				getJawaban.map((val, idx) => {
-					jawaban_list[idx] = val;
+				getJawaban.map((val, childIdx) => {
+					jawaban_list[childIdx] = val;
+					if (val.is_right) {
+						jawaban_benar[idx] = val.id;
+					}
 				})
 
 				// await Promise.all(
 				await supabase
 					.from('kelas_peserta_ujian_jawaban')
-					.update({ jawaban_list: jawaban_list })
+					.update({ jawaban_list: JSON.stringify(jawaban_list), jawaban_benar: jawaban_benar[idx] })
 					.eq('id', kelas_peserta_ujian_jawaban_id)
 				// );
 			}
 		})
+
 		setLoading(false)
-		navigation.navigate('UjianScreen', { kelasaUjianPesertaId: kelas_peserta_ujian_id });
+
+		Dialog.show({
+			type: ALERT_TYPE.SUCCESS,
+			title: 'Soal Telah disiapkan, segera kerjakan Pre Test sekarang',
+			button: 'Ok',
+			onPressButton: () => {
+				navigation.navigate('UjianScreen', { kelasUjianPesertaId: kelas_peserta_ujian_id }), Dialog.hide()
+			},
+		})
+		// navigation.navigate('UjianScreen', { kelasUjianPesertaId: kelas_peserta_ujian_id });
 	}
 
 

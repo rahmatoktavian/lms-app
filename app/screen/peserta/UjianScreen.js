@@ -10,6 +10,7 @@ export default function UjianScreen({ navigation, route, theme }) {
 	const { kelasUjianPesertaId } = route.params;
 	const [pesertaId, setPesertaId] = useState(null)
 	const [soalList, setSoalList] = useState(null);
+	const [checked, setChecked] = useState([]);
 	const [soalIdx, setSoalIdx] = useState(0);
 	const [jawaban, setJawaban] = useState('');
 	const screenWidth = Dimensions.get('window').width;
@@ -43,8 +44,8 @@ export default function UjianScreen({ navigation, route, theme }) {
 			.eq('kelas_peserta_ujian_id', kelasUjianPesertaId);
 
 		setSoalList(data);
-		console.log('get soal nih', JSON.parse(data[0].jawaban_list), error, kelasUjianPesertaId);
-		setLoading(false)
+		console.log('get soal nih', data, error);
+		setLoading(false);
 	}
 
 	const onJawabSoal = async (id, jawabanBenar, jawabanDipilih) => {
@@ -68,40 +69,42 @@ export default function UjianScreen({ navigation, route, theme }) {
 			<ScrollView>
 				<View>
 					<ScrollView ref={scrollViewRef} horizontal={true} showsHorizontalScrollIndicator={false} style={{ height: 40, margin: 5 }}>
-						<Button mode={soalIdx == 1 ? 'contained' : 'outlined'} onPress={() => setSoalIdx(1)} style={{ marginRight: 5 }}>Soal 1</Button>
-						<Button mode={soalIdx == 2 ? 'contained' : 'outlined'} onPress={() => setSoalIdx(2)} style={{ marginRight: 5 }}>Soal 2</Button>
-						<Button mode={soalIdx == 3 ? 'contained' : 'outlined'} onPress={() => setSoalIdx(3)} style={{ marginRight: 5 }}>Soal 3</Button>
-						<Button mode={soalIdx == 4 ? 'contained' : 'outlined'} onPress={() => setSoalIdx(4)} style={{ marginRight: 5 }}>Soal 4</Button>
-						<Button mode={soalIdx == 5 ? 'contained' : 'outlined'} onPress={() => setSoalIdx(5)} style={{ marginRight: 5 }}>Soal 5</Button>
-						<Button mode={soalIdx == 6 ? 'contained' : 'outlined'} onPress={() => setSoalIdx(6)} style={{ marginRight: 5 }}>Soal 6</Button>
-						<Button mode={soalIdx == 7 ? 'contained' : 'outlined'} onPress={() => setSoalIdx(7)} style={{ marginRight: 5 }}>Soal 7</Button>
-						<Button mode={soalIdx == 8 ? 'contained' : 'outlined'} onPress={() => setSoalIdx(8)} style={{ marginRight: 5 }}>Soal 8</Button>
-						<Button mode={soalIdx == 9 ? 'contained' : 'outlined'} onPress={() => setSoalIdx(9)} style={{ marginRight: 5 }}>Soal 9</Button>
-						<Button mode={soalIdx == 10 ? 'contained' : 'outlined'} onPress={() => setSoalIdx(10)} style={{ marginRight: 5 }}>Soal 10</Button>
+						{soalList && (
+							soalList.map((row, idx) => (
+								<Button mode={soalIdx == idx ? 'contained' : 'outlined'} onPress={() => setSoalIdx(idx)} style={{ marginRight: 5 }}>Soal {idx + 1}</Button>
+							))
+						)}
 					</ScrollView>
 				</View>
 
-				{soalList && (
+				{soalList && (<>
 					<List.Item
-						title={() => <Text variant="headlineSmall">{soalList[soalIdx].jawaban_list[0].label}</Text>}
+						title={() => <Text variant="headlineSmall">{soalList[soalIdx].soal}</Text>}
 						style={{ margin: 20 }}
 					/>
+					<View style={{ margin: 20 }}>
+						{JSON.parse(soalList[soalIdx].jawaban_list).map((jawabanRow) => (
+							<List.Item
+								onPress={() => (setChecked(jawabanRow.id), onJawabSoal(soalList[soalIdx].id, soalList[soalIdx].jawaban_benar, jawabanRow.id))}
+								left={() => (<RadioButton
+									value={jawabanRow.id}
+									status={checked[soalIdx] === jawabanRow.id ? 'checked' : 'unchecked'}
+								/>)}
+								title={(
+									<Text variant="bodyLarge">{jawabanRow.label}</Text>
+								)}
+							/>
+						))}
+					</View>
+				</>
 				)}
-
-				{/* {soalList[soalIdx].jawaban_list.map((jawabanRow) => (
-					<List.Item
-						title={(<Text variant="headlineSmall">{jawabanRow}</Text>)}
-						style={{ margin: 20 }}
-					/>
-				))} */}
-
 
 			</ScrollView>
 
 
 			<View style={{ flexDirection: 'row' }}>
-				<Button icon="arrow-left" mode="outlined" onPress={() => scrollButton(soalIdx - 1)} style={{ flex: 1, margin: 10 }}>Prev</Button>
-				<Button icon="arrow-right" mode="contained" onPress={() => scrollButton(soalIdx + 1)} contentStyle={{ flexDirection: 'row-reverse' }} style={{ flex: 1, margin: 10 }}>Next</Button>
+				<Button icon="arrow-left" mode="outlined" onPress={() => setSoalIdx(soalIdx - 1)} style={{ flex: 1, margin: 10 }}>Prev</Button>
+				<Button icon="arrow-right" mode="contained" onPress={() => setSoalIdx(soalIdx + 1)} contentStyle={{ flexDirection: 'row-reverse' }} style={{ flex: 1, margin: 10 }}>Next</Button>
 			</View>
 		</>
 	);
