@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { ScrollView } from 'react-native';
-import { Appbar, Checkbox, List } from 'react-native-paper';
+import { Appbar, Button, Checkbox, List } from 'react-native-paper';
 import { supabase } from '../../config/supabase';
 
 export default function MateriScreen({ navigation, route }) {
-	const { id, pesertaId, kelasLabel, kelasPesertaId } = route.params;
+	const { id, pesertaId, soalPaketId, kelasPesertaId, kelasLabel } = route.params;
 	const [materi, setMateri] = useState([]);
+	const [materiUnchecked, setMateriUnchecked] = useState(0);
 	const [treeData, setTreeData] = useState([]);
 
 	useEffect(() => {
@@ -20,27 +21,39 @@ export default function MateriScreen({ navigation, route }) {
 			.order('urutan', { ascending: true });
 
 		let treeList = [];
+		let totalUnchecked = 0;
+		let selectedVal = false;
 		await Promise.all(
 			menu.map(async (row, idx) => {
 				treeList[idx] = { key: row.id, title: row.label }
 
 				const { data: menuchild } = await supabase
-					.rpc('kelas_materi_file_rpc', { peserta_id: pesertaId })
-				console.log('childrenx', menuchild);
+					.rpc('kelas_materi_file_rpc', { peserta_id_filter: pesertaId, kelas_materi_id_filter: row.id })
+				let children = [];
 				if (menuchild != null) {
-					let children = [];
 					menuchild.map(rowchild => {
-
-						children.push({ id: rowchild.id, tipe: rowchild.tipe, url: rowchild.url, title: rowchild.label, selected: (rowchild.log_time === null) ? false : true })
+						selectedVal = (rowchild.log_time === null) ? false : true;
+						if (!selectedVal) {
+							totalUnchecked++
+						}
+						children.push({ id: rowchild.id, tipe: rowchild.tipe, url: rowchild.url, title: rowchild.label, selected: selectedVal })
 					})
-					treeList[idx]['children'] = children
 				}
+				treeList[idx]['children'] = children
 
 			})
 		)
-
+		setMateriUnchecked(totalUnchecked)
 		setTreeData(treeList)
-		console.log('treeList', treeList[0].children)
+	}
+
+	const onSelesai = async () => {
+		const { error } = await supabase
+			.from('kelas_peserta')
+			.update({ status_kelas: 3 })
+			.eq('id', kelasPesertaId);
+
+		navigation.navigate('KelasScreen', { id: id, pesertaId: pesertaId, soalPaketId: soalPaketId, kelasPesertaId: kelasPesertaId, kelasLabel: kelasLabel });
 	}
 
 	return (
@@ -74,6 +87,9 @@ export default function MateriScreen({ navigation, route }) {
 				}
 
 			</ScrollView>
+			{materiUnchecked === 0 && (
+				<Button mode="contained" icon="check" onPress={() => onSelesai()} style={{ margin: 10 }} contentStyle={{ flexDirection: 'row-reverse' }} >Materi Selesai</Button>
+			)}
 		</>
 	);
 }

@@ -43,7 +43,7 @@ export default function CariKelasScreen({ navigation }) {
 		setLoading(true)
 		const { error } = await supabase
 			.from('kelas_peserta')
-			.insert({ kelas_id: kelas.id, peserta_id: pesertaID, tanggal_mulai: new Date() })
+			.insert({ kelas_id: kelas.id, peserta_id: pesertaID, tanggal_mulai: new Date(), status_kelas: 1 })
 
 		if (!error) {
 			await navigation.navigate('HomeScreen');

@@ -2,13 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Dimensions, View, ScrollView } from 'react-native';
 import { Appbar, Button, List, RadioButton, Text } from 'react-native-paper';
 import { supabase } from '../../config/supabase';
-import getSession from '../../comp/getSession';
 import Loader from '../../comp/Loader';
+import { Dialog, ALERT_TYPE } from 'react-native-alert-notification';
 
 export default function UjianScreen({ navigation, route, theme }) {
 	const [loading, setLoading] = useState(false);
-	const { kelasUjianPesertaId } = route.params;
-	const [pesertaId, setPesertaId] = useState(null)
+	const [jawabanIdx, setJawabanIdx] = useState(null)
+	const [firstRender, setFirstRender] = useState(true);
+	const { id, pesertaId, soalPaketId, kelasPesertaId, kelasLabel, kelasUjianPesertaId } = route.params;
 	const [soalList, setSoalList] = useState(null);
 	const [checked, setChecked] = useState([]);
 	const [soalIdx, setSoalIdx] = useState(0);
@@ -23,17 +24,32 @@ export default function UjianScreen({ navigation, route, theme }) {
 	}
 
 	useEffect(async () => {
-		getPesertaId();
 		getSoal();
 	}, [])
 
 
-	const getPesertaId = async () => {
+	const onPrev = () => {
 		setLoading(true)
-		await getSession().then(async val => setPesertaId(val.id));
+		setSoalIdx(soalIdx - 1)
+		setJawabanIdx(null)
 		setLoading(false)
 	}
 
+
+	const onSoalSlc = (idx) => {
+		setLoading(true)
+		setSoalIdx(idx)
+		setJawabanIdx(null)
+		setLoading(false)
+	}
+
+
+	const onNext = () => {
+		setLoading(true)
+		setSoalIdx(soalIdx + 1)
+		setJawabanIdx(null)
+		setLoading(false)
+	}
 
 
 	const getSoal = async () => {
@@ -44,24 +60,71 @@ export default function UjianScreen({ navigation, route, theme }) {
 			.eq('kelas_peserta_ujian_id', kelasUjianPesertaId);
 
 		setSoalList(data);
-		console.log('get soal nih', data, error);
 		setLoading(false);
 	}
 
-	const onJawabSoal = async (id, jawabanBenar, jawabanDipilih) => {
-		let jawaban_status = jawabanBenar == jawabanDipilih ? true : false;
 
+	const onPilihJawaban = async (selected) => {
+		setJawabanIdx(selected)
+		let soalTemp = soalList;
+		let jawaban_benar = soalList[soalIdx].jawaban_benar;
+
+		//offline
+		soalTemp[soalIdx].jawaban_dipilih = selected;
+		let jawaban_status = selected === jawaban_benar ? true : false;
+		soalTemp[soalIdx].jawaban_status = jawaban_status;
+
+		//online
 		const { data, error } = await supabase
 			.from('kelas_peserta_ujian_jawaban')
-			.update({ jawaban_dipilih: jawabanDipilih, jawaban_status: jawaban_status })
-			.eq('id', id);
+			.update({ jawaban_dipilih: selected, jawaban_status: jawaban_status })
+			.eq('id', soalTemp[soalIdx].id);
+
+		if (!error) {
+			setSoalList(soalTemp)
+		}
+	}
+
+
+	const onSelesai = async () => {
+		let total_jawaban_benar = 0;
+
+		Dialog.show({
+			type: ALERT_TYPE.SUCCESS,
+			title: 'Yakin ingin menyelesaikan ujian?',
+			button: 'Yakin',
+			onPressButton: async () => {
+				return Promise.all(soalList.map(row => {
+					if (row.jawaban_status) {
+						total_jawaban_benar++
+					}
+				})).then(async () => {
+					let total_soal = soalList.length;
+					let nilai = Math.ceil(total_jawaban_benar / total_soal * 100);
+
+					let dateNow = new Date();
+					const { error: errKelasPesertaUjian } = await supabase
+						.from('kelas_peserta_ujian')
+						.update({ waktu_selesai: dateNow, status_ujian: true, nilai: nilai, total_jawaban_benar: total_jawaban_benar })
+						.eq('id', kelasUjianPesertaId);
+					console.log('cek errors', { waktu_selesai: dateNow, status_ujian: true, nilai: nilai, total_jawaban_benar: total_jawaban_benar }, errKelasPesertaUjian);
+
+					const { error: errKelasPeserta } = await supabase
+						.from('kelas_peserta')
+						.update({ status_kelas: 2 })
+						.eq('id', kelasPesertaId);
+
+					navigation.navigate('KelasScreen', { id: id, pesertaId: pesertaId, soalPaketId: soalPaketId, kelasPesertaId: kelasPesertaId, kelasLabel: kelasLabel }), Dialog.hide()
+				})
+			},
+		})
 	}
 
 	return (
 		<>
 			<Appbar.Header>
 				<Appbar.BackAction onPress={() => navigation.goBack()} />
-				<Appbar.Content title="Kelas" />
+				<Appbar.Content title="Pre Test" />
 			</Appbar.Header>
 
 			<Loader loading={loading} />
@@ -71,40 +134,49 @@ export default function UjianScreen({ navigation, route, theme }) {
 					<ScrollView ref={scrollViewRef} horizontal={true} showsHorizontalScrollIndicator={false} style={{ height: 40, margin: 5 }}>
 						{soalList && (
 							soalList.map((row, idx) => (
-								<Button mode={soalIdx == idx ? 'contained' : 'outlined'} onPress={() => setSoalIdx(idx)} style={{ marginRight: 5 }}>Soal {idx + 1}</Button>
+								<Button mode={soalIdx == idx ? 'contained' : 'outlined'} onPress={() => onSoalSlc(idx)} style={{ marginRight: 5 }}>Soal {idx + 1}</Button>
 							))
 						)}
 					</ScrollView>
 				</View>
 
-				{soalList && (<>
-					<List.Item
-						title={() => <Text variant="headlineSmall">{soalList[soalIdx].soal}</Text>}
-						style={{ margin: 20 }}
-					/>
-					<View style={{ margin: 20 }}>
-						{JSON.parse(soalList[soalIdx].jawaban_list).map((jawabanRow) => (
-							<List.Item
-								onPress={() => (setChecked(jawabanRow.id), onJawabSoal(soalList[soalIdx].id, soalList[soalIdx].jawaban_benar, jawabanRow.id))}
-								left={() => (<RadioButton
-									value={jawabanRow.id}
-									status={checked[soalIdx] === jawabanRow.id ? 'checked' : 'unchecked'}
-								/>)}
-								title={(
-									<Text variant="bodyLarge">{jawabanRow.label}</Text>
-								)}
-							/>
-						))}
-					</View>
-				</>
-				)}
+				{
+					soalList && (<>
+						<List.Item
+							title={() => <Text variant="headlineSmall">{soalList[soalIdx].soal}</Text>}
+							style={{ margin: 20 }}
+						/>
+						<View style={{ marginHorizontal: 20 }}>
+							<RadioButton.Group onValueChange={val => onPilihJawaban(val)} value={jawabanIdx ? jawabanIdx : soalList[soalIdx].jawaban_dipilih}>
+								{JSON.parse(soalList[soalIdx].jawaban_list).map((jawabanRow) => (
+									<List.Item
+										// onPress={() => (setChecked(jawabanRow), onJawabSoal(soalList[soalIdx].id, soalList[soalIdx].jawaban_benar, jawabanRow))}
+										left={() => (<RadioButton
+											value={jawabanRow}
+										/>)}
+										title={(
+											<Text variant="titleMedium">{jawabanRow}</Text>
+										)}
+									/>
+								))}
+							</RadioButton.Group>
+						</View>
+					</>
+					)
+				}
 
-			</ScrollView>
+			</ScrollView >
 
 
 			<View style={{ flexDirection: 'row' }}>
-				<Button icon="arrow-left" mode="outlined" onPress={() => setSoalIdx(soalIdx - 1)} style={{ flex: 1, margin: 10 }}>Prev</Button>
-				<Button icon="arrow-right" mode="contained" onPress={() => setSoalIdx(soalIdx + 1)} contentStyle={{ flexDirection: 'row-reverse' }} style={{ flex: 1, margin: 10 }}>Next</Button>
+				<Button icon="arrow-left" mode="outlined" disabled={soalIdx > 0 ? false : true} onPress={() => onPrev()} style={{ flex: 1, margin: 10 }}>Prev</Button>
+
+				{soalList && (
+					soalIdx < (soalList.length - 1) ?
+						<Button icon="arrow-right" mode="contained" onPress={() => onNext()} contentStyle={{ flexDirection: 'row-reverse' }} style={{ flex: 1, margin: 10 }}>Next</Button>
+						:
+						<Button icon="check" mode="contained" onPress={() => onSelesai()} contentStyle={{ flexDirection: 'row-reverse' }} style={{ flex: 1, margin: 10 }}>Selesai</Button>
+				)}
 			</View>
 		</>
 	);
